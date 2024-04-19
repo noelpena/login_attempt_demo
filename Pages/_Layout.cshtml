@@ -28,5 +28,19 @@
     </div>
 
     <script src="_framework/blazor.server.js"></script>
+    <div id="components-reconnect-modal" style="display:none;"></div>
+    <script src="_framework/blazor.server.js" autostart="false"></script>
+    <script>
+        Blazor.start({
+            reconnectionOptions: {
+                maxRetries: 6,
+                retryIntervalMilliseconds: 5000
+            }
+        }).then(() => {
+            Blazor.defaultReconnectionHandler._reconnectCallback = function (d) {
+                document.location.reload();
+            }
+        });
+    </script>
 </body>
 </html>
