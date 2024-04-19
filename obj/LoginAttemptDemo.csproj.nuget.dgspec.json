@@ -44,9 +44,21 @@
               "target": "Package",
               "version": "[2.1.35, )"
             },
-            "MySql.Data": {
+            "FluentEmail.Core": {
               "target": "Package",
-              "version": "[8.3.0, )"
+              "version": "[3.0.2, )"
+            },
+            "FluentEmail.Razor": {
+              "target": "Package",
+              "version": "[3.0.2, )"
+            },
+            "FluentEmail.Smtp": {
+              "target": "Package",
+              "version": "[3.0.2, )"
+            },
+            "Npgsql": {
+              "target": "Package",
+              "version": "[8.0.2, )"
             }
           },
           "imports": [

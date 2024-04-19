@@ -1,8 +1,21 @@
 ﻿@page "/"
 @namespace LoginAttemptDemo.Pages
+
+@using System.Net;
+@using LoginAttemptDemo.Models;
+
+@inject IHttpContextAccessor httpContextAccessor;
+@inject Data.ResetAttemptsService pwd;
+
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     Layout = "_Layout";
+    var state = new InitialState();
+
+    var ip = httpContextAccessor.HttpContext.Connection?.RemoteIpAddress.ToString();
+
+    state.IpAddress = ip;
+    state.Cookie = pwd.GenerateProtectedCookie();
 }
 
-<component type="typeof(App)" render-mode="ServerPrerendered" />
+<component type="typeof(App)" param-initialState=@state render-mode="ServerPrerendered" />

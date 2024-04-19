@@ -1,13 +1,29 @@
 using LoginAttemptDemo.Data;
+using LoginAttemptDemo.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddDataProtection();
+builder.Services.AddScoped<UserIpAddressModel>();
+builder.Services.AddScoped<ResetAttemptsService>();
+builder.Services.AddSingleton<ResetPasswordService>();
 builder.Services.AddSingleton<LookupService>();
+builder.Services.AddSingleton<EmailService>();
+
+
+builder.Services.AddScoped<IDataProtector>(provider =>
+{
+    var dataProtectionProvider = provider.GetRequiredService<IDataProtectionProvider>();
+    var protector = dataProtectionProvider.CreateProtector("login_attempt_demo");
+    return protector;
+});
 
 var app = builder.Build();
 

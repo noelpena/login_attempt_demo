@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "kGoztQd/OYaxKR6LbQ0uI1AB6QqgwoDgS5ev2K0MVzs=",
+  "Hash": "aMwOm64KaSjY5+4udhVssxNj7HJrlcJvxaw5iu+ne6E=",
   "Source": "LoginAttemptDemo",
   "BasePath": "_content/LoginAttemptDemo",
   "Mode": "Default",
@@ -270,6 +270,23 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\favicon.ico"
+    },
+    {
+      "Identity": "C:\\Users\\penan\\Learning Projects\\Blazor demo apps\\LoginAttemptDemo\\wwwroot\\images\\logo.png",
+      "SourceId": "LoginAttemptDemo",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\penan\\Learning Projects\\Blazor demo apps\\LoginAttemptDemo\\wwwroot\\",
+      "BasePath": "_content/LoginAttemptDemo",
+      "RelativePath": "images/logo.png",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\logo.png"
     }
   ]
 }

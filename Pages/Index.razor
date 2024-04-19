@@ -1,18 +1,504 @@
 ﻿@page "/"
 @using LoginAttemptDemo.Models
-@inject Data.LookupService lookup
+@using System.Text.RegularExpressions
 
-<PageTitle>Index</PageTitle>
+@inject Data.LookupService lookup_service;
+@inject Data.EmailService email_service;
+@inject Data.ResetPasswordService reset_pwd_service;
+@inject Data.ResetAttemptsService pwd;
+@inject IHttpContextAccessor HttpContextAccessor;
+@inject UserIpAddressModel _ipAddress;
+@inject NavigationManager NavigationManager
 
-<h1>Hello, world!</h1>
+<PageTitle>Login Attempt Demo</PageTitle>
+
+<div class="container justify-content-center" style="max-width:400px;">
+    <div class="row my-3">
+        <div class="col">
+            <p class="text-center my-5">
+                <img src="images/logo.png" />
+            </p>
+        </div>
+    </div>
+</div>
+@if (showStep1)
+{
+    <div class="container justify-content-center" style="max-width:@maxWidth;" id=@fadeState>
+        <div class="row">
+            <div class="col">
+                <p class="text-center">
+                    Enter your Employee ID or your work email address.
+                    We will send you an email to your personal email address with the authorization code to confirm your identity.
+                </p>
+            </div>
+        </div>
+
+        <EditForm Model=@userFormModel OnValidSubmit="HandleValidFormSubmit">
+            <DataAnnotationsValidator />
+            <div class="row">
+                <div class="col">
+                    <div class="form-floating">
+                        <InputText @bind-Value=userFormModel.employeeID class="form-control" id="employeeId" />
+                            <label for="employeeId">Employee ID or Work Email Address</label>
+                        <ValidationMessage For="() => userFormModel.employeeID" />
+                    </div>
+                </div>
+            </div>
+            <ValidationSummary />
+
+
+            <div class="row text-center mt-3">
+                <div class="col">
+                    <div class="d-grid gap-2">
+                        <input type="submit" id="btn" class="rounded-0 btn btn-primary" value="Send Authorization Code" />
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage.Value))
+            {
+                <div class="alert alert-danger rounded-0 mt-3 shake" role="alert">
+                    @errorMessage
+                </div>
+            }
+        </EditForm>
+    </div>
+}
+@if (showStep2)
+{
+    <div class="container justify-content-center" style="max-width:@maxWidth;" id=@fadeState>
+        <div class="row">
+            <div class="col">
+                <p>
+                    Enter the auth code that was sent to your personal email address <strong>(@personalEmailAddress)</strong>.<br><br>
+                    If you do not have access to your personal email address then call us at 1-(555)-IM-SORRY 1-(555) 467-6779.<br><br>
+                    The authorization code will expire in 10 minutes.
+                </p>
+            </div>
+        </div>
+
+        <EditForm Model=@userAuthCode OnValidSubmit="HandleValidFormSubmit2">
+            <DataAnnotationsValidator />
+            <div class="row">
+                <div class="col">
+                    <div class="form-floating">
+                        <InputText @bind-Value=userAuthCode.AuthCode class="form-control" id="userAuthCode" maxlength="6" />
+                        <label for="userAuthCode">Enter 6-Character Authorization Code </label>
+                        <ValidationMessage For="() => userAuthCode.AuthCode" />
+                    </div>
+                </div>
+            </div>
+
+            <ValidationSummary />
+
+            <div class="row text-center mt-3">
+                <div class="col">
+                    <div class="d-grid gap-2">
+                        <input type="submit" id="btn" class="rounded-0 btn btn-primary" value="Validate Authorization code" />
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage.Value))
+            {
+                <div class="alert alert-danger rounded-0 mt-3 shake" role="alert">
+                    @errorMessage
+                </div>
+            }
+        </EditForm>
+    </div>
+}
+@if (showStep3)
+{
+    <div class="container justify-content-center" style="max-width:@maxWidth;" id=@fadeState>
+
+        <EditForm Model=@userVerification OnValidSubmit="HandleValidFormSubmit3">
+            <DataAnnotationsValidator />
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="form-floating">
+                        @if (showSpinner)
+                        {
+                            <InputText @bind-Value=userVerification.SSNLast4 class="form-control" id="userSSNLast4" maxlength="4" pattern="[0-9]+" disabled />
+                        }
+                        else
+                        {
+                            <InputText @bind-Value=userVerification.SSNLast4 class="form-control" id="userSSNLast4" maxlength="4" pattern="[0-9]+" />
+                        }
+                        <label for="userSSNLast4">Last 4 digits of Social Security Number </label>
+                        <ValidationMessage For="() => userVerification.SSNLast4" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="form-floating">
+                        @if (showSpinner)
+                        {
+                            <InputDate @bind-Value=userVerification.DOB class="form-control" id="userDob" disabled />
+                        }
+                        else
+                        {
+                            <InputDate @bind-Value=userVerification.DOB class="form-control" id="userDob" />
+
+                        }
+                        <label for="userDob">Date of Birth </label>
+                        <ValidationMessage For="() => userVerification.DOB" />
+                    </div>
+                </div>
+            </div>
+
+           @* <div class="row">
+                <div class="col">
+                    <div class="form-floating">
+                        <p>
+                            Reset Password/Multi-Factor Authentication:<br>
+                            <InputRadioGroup Name="reset-type" class="mt-2 form-control" @bind-Value="userVerification.ResetType">
+
+                                <InputRadio Name="reset-type" Value="resetTypes[0]" />
+                                Reset Password<br>
+
+                                <InputRadio Name="reset-type" Value="resetTypes[1]" />
+                                Reset Multi-Factor Authentication<br>
+
+                                <InputRadio Name="reset-type" Value="resetTypes[2]" />
+                                Reset Password and Multi-Factor Authentication<br>
+
+                            </InputRadioGroup>
+                        </p>
+                    </div>
+                </div>
+            </div>*@
+
+            @* <ValidationSummary />*@
+
+            <div class="row text-center mt-3">
+                <div class="col">
+                    <div class="d-grid gap-2">
+                        @if (showSpinner)
+                        {
+                            <input type="submit" id="btn" class="rounded-0 btn btn-primary" value="Reset Password" disabled />
+                        }
+                        else
+                        {
+                            <input type="submit" id="btn" class="rounded-0 btn btn-primary" value="Reset Password" />
+
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage.Value))
+            {
+                <div class="alert alert-danger rounded-0 mt-3 shake" role="alert">
+                    @errorMessage
+                </div>
+            }
+        </EditForm>
+    </div>
+}
+@if (showStep4)
+{
+    <div class="container justify-content-center" style="max-width:@maxWidth;" id=@fadeState>
+        <div class="row">
+            <div class="col">
+                <div class="alert alert-success" role="alert">
+                    <p class="mb-0">
+                        Your password has been successfully reset. A temporary password will be sent to your personal email address on file.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if(showSpinner)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border text-primary" id="spinner" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
 
 @code {
-    List<UserModel> users;
+    UserFormModel userFormModel = new();
+    UserAuthCode userAuthCode = new();
+    UserVerification userVerification = new();
+    UserContainerModel userData = new();
+    ResetAuthCodeReturnObject authResults = new();
 
-    protected override async void OnInitialized()
+    //List<UserModel> users;
+
+    string maxWidth = "450px";
+    string personalEmailAddress = "";
+    string ipAddress = "";
+    string cookie = "";
+
+    string fadeState = "fade-out";
+    MarkupString errorMessage = new MarkupString("");
+
+    bool showSpinner = false;
+    bool showStep1 = true;
+    bool showStep2 = false;
+    bool showStep3 = false;
+    bool showStep4 = false;
+
+    bool maxAttempts = false;
+    int attemptsNum = 0;
+
+    List<string> resetTypes = Enum.GetNames(typeof(ResetType)).ToList();
+
+    protected override void OnInitialized()
     {
-        //base.OnInitialized();
-        users = await lookup.UserLookup("", "");
-        var g = "";
+        ipAddress = _ipAddress.IpAddress;
+        cookie = _ipAddress.Cookie;
+    }
+
+    public async Task addAttempt(int step_number, bool isSuccessful)
+    {
+        var user_id_email = "";
+        if (String.IsNullOrEmpty(userFormModel.employeeID))
+        {
+            if (!String.IsNullOrEmpty(userFormModel.workEmail))
+            {
+                user_id_email = userFormModel.workEmail.ToLower();
+            }
+        }
+        else
+        {
+            user_id_email = userFormModel.employeeID;
+        }
+
+        var attempt = new ResetAttemptModel();
+        attempt.ip_address = ipAddress;
+        attempt.cookie = cookie;
+        attempt.employee_id_email = user_id_email;
+        attempt.step_number = step_number;
+        attempt.attempt_time = DateTime.Now;
+
+        var newAttempt = await pwd.AddAttempt(attempt);
+        if (!isSuccessful)
+        {
+            CheckAttempts(step_number);
+        }
+    }
+
+    public async Task CheckAttempts(int step_number)
+    {
+        var user_id_email = "";
+        if (String.IsNullOrEmpty(userFormModel.employeeID))
+        {
+            if (!String.IsNullOrEmpty(userFormModel.workEmail))
+            {
+                user_id_email = userFormModel.workEmail.ToLower();
+            }
+        }
+        else
+        {
+            user_id_email = userFormModel.employeeID;
+        }
+
+        var number_of_attempts = await pwd.GetAttempts(user_id_email, ipAddress, cookie, step_number);
+        attemptsNum = number_of_attempts;
+        if (number_of_attempts >= 5)
+        {
+            maxAttempts = true;
+            errorMessage = new MarkupString("<strong>Too many failed attempts.</strong> Please try again later.");
+            StateHasChanged();
+        }
+        else
+        {
+            maxAttempts = false;
+            StateHasChanged();
+        }
+    }
+
+    private async void HandleValidFormSubmit(EditContext editContext)
+    {
+        attemptsNum = 0;
+        await CheckAttempts(1);
+        if (!maxAttempts)
+        {
+            if (string.IsNullOrEmpty(userFormModel.employeeID))
+            {
+                errorMessage = new MarkupString("You must enter your Employee ID or Work Email Address.");
+            }
+            else 
+            {
+                showSpinner = true;
+                errorMessage = new MarkupString("");
+                StateHasChanged();
+                bool isEmail = IsValidEmail(userFormModel.employeeID);
+                if (isEmail)
+                {
+                    userFormModel.workEmail = userFormModel.employeeID;
+                    userFormModel.employeeID = "";
+                }
+
+                userData = await lookup_service.UserLookup(userFormModel.workEmail, userFormModel.employeeID);
+                if (userData.success)
+                {
+                    ShowStep2();
+                    var personalEmail = userData.User.personal_email;
+                    int atSignIndex = personalEmail.IndexOf('@');
+                    string maskedEmail = "";
+                    if (atSignIndex > 2)
+                    {
+                        maskedEmail = personalEmail[0] + new string('*', atSignIndex - 2) + personalEmail[atSignIndex - 1] + personalEmail.Substring(atSignIndex);
+                    }
+                    personalEmailAddress = maskedEmail;
+                    await addAttempt(1, true);
+                    var emailResults = await email_service.SendAuthEmail(userData);
+                }
+                else
+                {
+                    showSpinner = false;
+                    errorMessage = new MarkupString("Unable to find Employee ID or Work Email Address. Please try again.");
+                    await addAttempt(1, false);
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+    private async void HandleValidFormSubmit2(EditContext editContext)
+    {
+        attemptsNum = 0;
+        await CheckAttempts(2);
+        if (!maxAttempts)
+        {
+            errorMessage = new MarkupString("");
+            StateHasChanged();
+            authResults = new ResetAuthCodeReturnObject();
+            authResults = await lookup_service.ValidateAuthorizationCode(userAuthCode.AuthCode.ToUpper(), userData);
+            if (!authResults.Success)
+            {
+                // Validation failed
+                if (authResults.IsExpired)
+                {
+                    var baseURL = NavigationManager.BaseUri;
+                    MarkupString reloadLink = new MarkupString($"<a onClick='location.reload()' href='{baseURL}'>Request another authorization code.</a>");
+                    errorMessage = new MarkupString(authResults.Message + " " + reloadLink);
+                    StateHasChanged();
+                    await addAttempt(2, false);
+                }
+                else
+                {
+                    showSpinner = false;
+                    errorMessage = new MarkupString(authResults.Message + "<br />" + (5 - attemptsNum).ToString() + " Attempts left.");
+                    StateHasChanged();
+                    await addAttempt(2, false);
+                }
+            }
+            else
+            {
+                errorMessage = new MarkupString("");
+                await addAttempt(2, true);
+                ShowStep3();
+            }
+        }
+        else
+        {
+            errorMessage = new MarkupString("");
+            await addAttempt(2, false);
+            StateHasChanged();
+        }
+    }
+
+    private async void HandleValidFormSubmit3(EditContext editContext)
+    {
+        attemptsNum = 0;
+        await CheckAttempts(3);
+        if (!maxAttempts)
+        {
+            showSpinner = true;
+            StateHasChanged();
+            errorMessage = new MarkupString("");
+            //RESET PASSWORD
+            ResetPasswordResponse results = await reset_pwd_service.ResetPassword(userVerification, userData.User); // NEEDS TO VERIFY THAT SSN4 AND DOB IS CORRECT IF SO RESET PASSWORD
+            if (results.ResetSuccessful)
+            {
+                errorMessage = new MarkupString("");
+                await addAttempt(3, true);
+                ShowStep4();
+            }
+            else
+            {
+                await addAttempt(3, false);
+                showSpinner = false;
+                errorMessage = new MarkupString(results.ResponseMessage);
+                
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            errorMessage = new MarkupString("");
+            await addAttempt(3, false);
+            StateHasChanged();
+        }
+    }
+
+    //protected override async void OnInitialized()
+    //{
+    //    //base.OnInitialized();
+    //    users = await lookup.UserLookup("", "");
+    //    var g = "";
+    //}
+
+    public bool IsValidEmail(string email)
+    {
+        // Regular expression pattern for email validation
+        string pattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+
+        // Create a regular expression object
+        Regex regex = new Regex(pattern);
+
+        // Use the regular expression to check if the email is valid
+        return regex.IsMatch(email);
+    }
+
+    private async void ShowStep2()
+    {
+        showSpinner = true;
+        fadeState = "fade-in";
+        StateHasChanged();
+        await Task.Delay(2000);
+        fadeState = "fade-out";
+        showStep1 = false;
+        showStep2 = true;
+        showStep3 = false;
+        showSpinner = false;
+        StateHasChanged();
+    }
+    private async void ShowStep3()
+    {
+        showSpinner = true;
+        fadeState = "fade-in";
+        StateHasChanged();
+        await Task.Delay(1000);
+        fadeState = "fade-out";
+        showStep1 = false;
+        showStep2 = false;
+        showStep3 = true;
+        showSpinner = false;
+        StateHasChanged();
+    }
+    private async void ShowStep4()
+    {
+        showSpinner = true;
+        fadeState = "fade-in";
+        StateHasChanged();
+        await Task.Delay(1000);
+        fadeState = "fade-out";
+        showStep1 = false;
+        showStep2 = false;
+        showStep3 = false;
+        showStep4 = true;
+        showSpinner = false;
+        StateHasChanged();
     }
 }
